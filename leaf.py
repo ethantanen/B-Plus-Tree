@@ -44,17 +44,19 @@ class Leaf(node.Node):
     def depth(self):
         return 1
 
+    # delete a vaslue from this node
     def delete(self, value, left=None, right=None, left_anchor=None, right_anchor=None):
+
+        # check if value exists and remove it if it does!
         if value in self.values:
             self.values.remove(value)
             self.nvalues -= 1
         return self
 
-
     # merges self with node (left merge)
     def merge(self, node):
 
-        # check if merge is possible
+        # check if the node exists and sum of values doesn't cause an overflow
         if not node or node.nvalues + self.nvalues > self.order:
             return False
 
@@ -63,22 +65,17 @@ class Leaf(node.Node):
         node.values += self.values
         node.values.sort()
 
-        # erase content of current node
-        self.values = []
-        self.nvalues = 0
-
-        print(node.values, self.values)
+        # confirm that merge has happened
         return True
-
 
     # rebalances by moving content from node to this node
     def rebalance(self, node):
 
-        # reject rebalance if node is halfway full
+        # reject rebalance if node is only halfway full or doesn't exist!
         if not node or self.nvalues + node.nvalues < 2*math.floor(self.order/2):
             return False
 
-        # combine value lists and determine halfway point
+        # combine value lists, sort list and determine halfway point
         values = (self.values + node.values)
         values.sort()
         half = math.floor(len(values)/2)
@@ -91,12 +88,12 @@ class Leaf(node.Node):
         node.values = values[half:]
         node.nvalues = len(node.values)
 
+        # confirm the rebalance occured!
         return True
 
-
-    def is_more_than_half_full(self):
+    # check if node is at least half full (for rebalance purposes)
+    def is_at_least_half_full(self):
         return self.nvalues >= math.floor(self.order/2)
-
 
     def check(self):
         assert self.nvalues == len(self.values)

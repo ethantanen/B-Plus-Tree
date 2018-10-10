@@ -59,39 +59,40 @@ class Interior(node.Node):
     def depth(self):
         return 1 + max([child.depth() for child in self.children])
 
-    def delete(self, value, left=None, right=None, left_anchor=None, right_anchor=None):
+
+    def delete(self, value, left_neigh=None, right_neigh=None, left_anchor=None, right_anchor=None):
 
         # determine next node to visit
         pos, child = self.select_child(value)
 
         # determine child's neighbors and anchors
-        child_left, child_left_anchor, child_right, child_right_anchor = \
-            self.get_nexts(left, right, left_anchor, right_anchor, pos, child)
+        child_left_neigh, child_left_anchor, child_right_neigh, child_right_anchor = \
+            self.get_nexts(left_neigh, right_neigh, left_anchor, right_anchor, pos, child)
 
         # continue recursive search
-        child = child.delete(value, child_left, child_right, child_left_anchor, child_right_anchor)
+        child = child.delete(value, child_left_neigh, child_right_neigh, child_left_anchor, child_right_anchor)
 
-        # if execution has reached this point, the value has been deleted and recursion is unwinding
+        #NOTE: at this point in the execution the algorithm has reached its base case and the call stack is
+        # beginning to shrink (unwind)
 
         # check if rebalance or merge is necessary
-        if child.is_more_than_half_full():
+        if child.is_at_least_half_full():
             # no rebalnce or merge is necessary
             # update current nodes pointers
             self.compute_values()
             return self
 
         # check if rebalance is possible than check if merge is possible
-        if child_left and child_left.rebalance(child):
+        if child_left_neigh and child_left_neigh.rebalance(child):
             pass
-        elif child.rebalance(child_right):
+        elif child.rebalance(child_right_neigh):
             pass
-        elif child.merge(child_left):
+        elif child.merge(child_left_neigh):
             # remove the empty child from the current node
             self.children.remove(child)
-        elif child.merge(child_right):
+        elif child.merge(child_right_neigh):
             # remove the emtpy child from the current node
             self.children.remove(child)
-
 
         # update current nodes pointers after rebalance/ merge
         self.compute_values()
@@ -105,7 +106,7 @@ class Interior(node.Node):
     # merge this nodes children with the node passed in
     def merge (self, node):
 
-        # check if merge is possible
+        # check if node exists and that a merge will not cause an overflow scenario
         if not node or len(node.children) + len(self.children) > self.order:
             return False
 
@@ -114,13 +115,14 @@ class Interior(node.Node):
         node.children += self.children
         self.children = []
 
+        # confirm that a merge occured
         return True
 
     # rebalance this node with the node passed in
     def rebalance(self, node):
 
         # check if rebalance is possible
-        if not node or not node.is_more_than_half_full():
+        if not node or not node.is_at_least_half_full():
             return False
 
         # combine value lists and determine halfway point
@@ -131,14 +133,17 @@ class Interior(node.Node):
         self.values = children[:half]
         node.values = children[half:]
 
+        # confirm that a rebalance occured
         return True
 
 
-
-    def is_more_than_half_full(self):
+    # determine if a node is at least halfway full
+    def is_at_least_half_full(self):
         return len(self.children) >= math.floor(self.order/2)
 
-    # calculate the next_nodes neighbors and anchors 
+    # calculate the next_nodes neighbors and anchors
+    # anchors are the nodes at which a node and its neighbor branch off
+    # next_node_pos is the index of the child in the parent's children array
     def get_nexts(self, left_node, right_node, left_anchor, right_anchor, next_node_pos, next_node):
 
          # calculate next left node and its anchor
@@ -163,7 +168,7 @@ class Interior(node.Node):
     def get_greatest_pointer(self):
         return self.children[-1]
 
-    # retrun the least greatest child in the childrens array
+    # retrun the least child in the childrens array
     def get_least_pointer(self):
         return self.children[0]
 
